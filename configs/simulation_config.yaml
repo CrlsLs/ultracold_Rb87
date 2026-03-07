@@ -1,0 +1,26 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Feb  9 16:30:11 2026
+
+@author: clher
+"""
+
+# Simulation parameters for ultracold Rb-87 cloud
+
+# Atom parameters
+n_atoms: 1.0e6
+temperature: 100.0e-9  # 100 nK
+
+# Trap frequencies (rad/s)
+omega_x: 125.66  # 2π × 20 Hz
+omega_y: 125.66
+omega_z: 628.32  # 2π × 100 Hz
+
+# Imaging parameters
+pixel_size: 3.0e-6  # 3 µm
+n_pixels: 256
+noise_level: 0.02
+
+# Beam parameters (for future use)
+beam_wavelength: 780.0e-9
+beam_power: 1.0e-3

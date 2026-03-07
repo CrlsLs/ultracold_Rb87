@@ -1,0 +1,14 @@
+# Ignore data and generated outputs
+data/
+output/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Spyder project files
+.spyproject/
+.spyderproject
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/

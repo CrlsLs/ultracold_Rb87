@@ -1,0 +1,219 @@
+# -*- coding: utf-8 -*-
+# =============================================================================
+# EXPERIMENTAL PARAMETERS FOR RB-87 ULTRACOLD ATOMS
+# Weber Beam Experiment Configuration
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ATOM PROPERTIES
+# -----------------------------------------------------------------------------
+atom:
+  species: "Rb-87"
+  mass_kg: 1.443160648e-25
+  mass_amu: 86.909180520
+  
+  # D2 Line transition
+  transition: "D2 (5S_1/2 → 5P_3/2)"
+  wavelength_d2_m: 780.241209686e-9
+  linewidth_gamma_hz: 6.0666e6  # Γ/2π in Hz
+  
+  # Hyperfine states used
+  states:
+    - F: 2
+      mF: 2
+    - F: 2
+      mF: 1
+
+# -----------------------------------------------------------------------------
+# CLOUD PROPERTIES
+# -----------------------------------------------------------------------------
+cloud:
+  # Atom number
+  n_atoms: 1.2e5
+  n_atoms_uncertainty: 0.2e5
+  
+  # Temperature
+  temperature_nK: 295           # Nominal temperature
+  temperature_min_nK: 280       # Day-to-day minimum
+  temperature_max_nK: 310       # Day-to-day maximum
+  temperature_fluctuation_nK: 5  # Shot-to-shot fluctuation
+  
+  # Initial size (after thermal expansion from trap)
+  initial_size_um: 100
+  
+  # Regime
+  regime: "dilute_thermal"  # non-BEC
+  
+  # Population distribution
+  population:
+    mF_2_fraction: 0.5
+    mF_1_fraction: 0.5
+    uncertainty: 0.1
+
+# -----------------------------------------------------------------------------
+# TRAP FREQUENCIES (Ioffe Trap)
+# -----------------------------------------------------------------------------
+trap:
+  type: "Ioffe"
+  
+  # Frequencies for |F=2, mF=2⟩ state
+  mF_2:
+    longitudinal_hz: 45.0
+    radial_hz: 247.0
+  
+  # Frequencies for |F=2, mF=1⟩ state  
+  mF_1:
+    longitudinal_hz: 31.8
+    radial_hz: 174.5
+  
+  # Note: ω_radial / ω_longitudinal ≈ 5.5 (cigar-shaped trap)
+
+# -----------------------------------------------------------------------------
+# INITIAL POSITION
+# -----------------------------------------------------------------------------
+initial_position:
+  # Release height from parabolic coordinates origin
+  release_height_um: 140
+  
+  # Collision times with Weber beam (depends on Weber parameter a)
+  collision_times_ms:
+    a_5: 5.6
+    a_10: 5.9
+    a_20: 6.4
+
+# -----------------------------------------------------------------------------
+# WEBER BEAM PARAMETERS
+# -----------------------------------------------------------------------------
+weber_beam:
+  # Wavelength
+  wavelength_nm: 780.368
+  red_detuning_nm: 0.127  # From D2 transition
+  
+  # Decay rate
+  decay_rate_gamma_hz: 6.06e6
+  
+  # Polarization
+  polarization: "linear"
+  
+  # Weber parameters studied
+  weber_parameters: [5, 10, 20]
+  
+  # Transverse wave number
+  k_perp_per_um: 0.375  # µm⁻¹
+  
+  # Beam structure
+  transverse_area_mm: [1.5, 0.85]  # width × height
+  propagation_invariance_mm: 6.0
+  
+  # Lobe separations (dark region boundaries)
+  lobe_separation_um:
+    a_5: 36
+    a_10: 66
+    a_20: 121
+  
+  # Maximum Rabi frequencies (in units of Γ)
+  rabi_frequency_gamma:
+    a_5: 19.1
+    a_10: 18.5
+    a_20: 18.5
+    range: [12.5, 22.8]
+
+# -----------------------------------------------------------------------------
+# EXPERIMENTAL GEOMETRY
+# -----------------------------------------------------------------------------
+geometry:
+  # Angle between beam axis and trap axis
+  beam_trap_angle_deg: 80
+  
+  # Gravity direction
+  gravity_direction: "positive_x"  # In parabolic coordinates
+  
+  # Imaging
+  imaging_orientation: "perpendicular_to_longitudinal"
+  image_plane_rotation_deg: 10  # From beam frame
+
+# -----------------------------------------------------------------------------
+# TIMING PARAMETERS
+# -----------------------------------------------------------------------------
+timing:
+  # Key observation times
+  observation_times_ms: [7, 13, 18]
+  
+  # Exit from beam
+  beam_exit_time_ms: 11
+  
+  # Fragmentation duration
+  fragmentation_duration_ms: 2  # After collision
+  
+  # Typical time range for simulations
+  simulation_time_range_ms: [0, 25]
+
+# -----------------------------------------------------------------------------
+# IMAGING SYSTEM
+# -----------------------------------------------------------------------------
+imaging:
+  # Camera
+  pixel_size_um: 6.45
+  
+  # Optics (adjust based on your actual setup)
+  magnification: 1.0
+  
+  # Effective pixel size in object plane
+  # effective_pixel_size = pixel_size / magnification
+  
+  # Observed region
+  field_of_view_um: [670, 420]  # width × height
+
+# -----------------------------------------------------------------------------
+# OPTICAL SETUP FOR BEAM GENERATION
+# -----------------------------------------------------------------------------
+optics:
+  # First telescope
+  telescope_1:
+    f1_mm: 500
+    f2_mm: 250
+    magnification: 0.5
+  
+  # Second telescope
+  telescope_2:
+    f1_mm: 1000
+    f2_mm: 200
+    magnification: 0.2
+
+# -----------------------------------------------------------------------------
+# PHYSICAL CONSTANTS
+# -----------------------------------------------------------------------------
+constants:
+  g_m_s2: 9.81
+  hbar_J_s: 1.054571817e-34
+  kb_J_K: 1.380649e-23
+  c_m_s: 299792458.0
+
+# -----------------------------------------------------------------------------
+# SIMULATION SETTINGS
+# -----------------------------------------------------------------------------
+simulation:
+  # Grid settings
+  n_pixels: 256
+  extent_um: 500  # Half-extent of simulation region
+  
+  # Noise settings
+  noise_level: 0.02  # As fraction of peak signal
+  include_shot_noise: false
+  
+  # Time resolution
+  n_time_points: 200
+
+# -----------------------------------------------------------------------------
+# OUTPUT SETTINGS
+# -----------------------------------------------------------------------------
+output:
+  # Directories (relative to project root)
+  figures_dir: "output/figures"
+  simulations_dir: "output/simulations"
+  tables_dir: "output/tables"
+  
+  # File formats
+  image_format: "png"
+  image_dpi: 150
+  data_format: "csv"  # or "hdf5"
