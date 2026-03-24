@@ -35,8 +35,8 @@ u_non_neg = u[u >= 0]
 
 sp = 8.0                # pixel size (microns)
 lambd = 0.782 / sp      # wavelength
-kp = 1.0                # transversal part of wave vector
-a_param = 10.0          # parameter "a" for Weber beam
+kp = 1.0                # transversal part of wave vector, to be re-escalated later as kp_pxsi
+a_param = 5.0          # parameter "a" for Weber beam
 np_val = 3.0
 
 # --- Confluent Hypergeometric Functions ---
@@ -82,7 +82,7 @@ phase_v = np.exp(-zv/2)
 Vo = Vo*v  # **1.375
 Uo = Uo*abs(u)  # *u
 # Ve = Ve*phase_v*phase_u
-# %%
+# %% plots UV's
 
 UVs = ['Ue', 'Uo', 'Ve', 'Vo']
 uvs_coords = ['u', 'u', 'v', 'v']
@@ -140,13 +140,15 @@ for i, func_name in enumerate(UVs):
 plt.tight_layout()
 plt.show()
 
-# %%
+# %% psi's
 # --- SLM Mapping ---
 tel_sc = 1
-# yy = np.linspace(-1920 * tel_sc / 2, 1920 * tel_sc / 2, 1920)
+# yy = np.linspace(-1920 * tel_sc / 2, 1920 * tel_sc / 2, 1920) #limits for the SLM
 # xx = np.linspace(-1080 * tel_sc / 2, 1080 * tel_sc / 2, 1080)
 
 # yy, xx in units of pixel size reduced
+# limits to reprouce the paper figure
+# limits for the paper image cropped
 yy = np.linspace(-670 * tel_sc / 2, 670 * tel_sc / 2, int(670/.8))
 xx = np.linspace(-420 * tel_sc / 2, 420 * tel_sc / 2, int(420/.8))
 
@@ -193,7 +195,7 @@ bmp_name = f"W_a{a_param}_kp{kp}_{timestamp}.bmp"
 # print(f"Hologram saved as {bmp_name}")
 
 
-# --- Plot ---
+# %% --- Plot ---
 plt.figure(221)
 plt.imshow(np.abs(psi_epio2n)**2,
            extent=[yy.min(), yy.max(), xx.min(), xx.max()], cmap='jet')
@@ -201,8 +203,17 @@ plt.title(f"Weber Beam Intensity (a={a_param})")
 plt.colorbar()
 plt.show()
 
+plt.figure(2211)
+plt.pcolormesh(xxx, yyy, np.abs(psi_epio2n)**2,
+               cmap='jet')
+plt.title(f"Weber Beam Intensity (a={a_param})")
+plt.colorbar()
+plt.axis('equal')
+plt.show()
 
-figure(222)
+
+# %%
+plt.figure(222)
 plt.imshow(phase_map,
            extent=[yy.min(), yy.max(), xx.min(), xx.max()], cmap='gray')
 plt.title(f"Weber Beam Intensity (a={a_param})")
@@ -261,7 +272,7 @@ plt.title(f"Weber Beam Intensity (a={a_param})")
 plt.colorbar()
 plt.show()
 # %%
-[UUo, VVo] = np.meshgrid(Uoc, Vo)
+[UUo, VVo] = np.meshgrid(Uo, Vo)
 # %%
 figure(235)
 plt.pcolormesh(UU, VV, np.angle(VVo*VVo*UUo*UUo))
@@ -328,3 +339,33 @@ plt.pcolormesh(np.angle(Psi_crop)[rwb:rwu, cll:clr], cmap='jet')
 plt.colorbar()
 plt.quiver(np.real(Psi_crop[rwb:rwu, cll:clr]), np.imag(
     Psi_crop[rwb:rwu, cll:clr]), width=0.001)
+
+# %%
+Psi_crop = psi_epio2n[mc:-mc, nc:-nc].copy()
+# Field gradients
+I = np.abs(Psi_crop)**2
+dI_dy, dI_dx = np.gradient(I, dy, dx)
+
+dPsi_dy, dPsi_dx = np.gradient(Psi_crop, dy, dx)
+Psi_star = np.conjugate(Psi_crop)
+phase_grad_y = np.imag(Psi_star * dPsi_dy)
+phase_grad_x = np.imag(Psi_star * dPsi_dx)
+
+plt.quiver(dI_dx[rwb:rwu, cll:clr],
+           dI_dy[rwb:rwu, cll:clr], color='blue', width=0.0007)
+
+# plt.figure(558, figsize=(15, 4))
+# plt.pcolormesh((np.abs(Psi_crop)[rwb:rwu, cll:clr])**2, cmap='jet')
+# plt.colorbar()
+
+plt.quiver(phase_grad_x[rwb:rwu, cll:clr],
+           phase_grad_y[rwb:rwu, cll:clr], color='red', width=0.0005)
+
+# %%
+plt.figure(560, figsize=(8, 4))
+
+
+plt.quiver(dI_dx[rwb:rwu, cll:clr] + 3*phase_grad_x[rwb:rwu, cll:clr],
+           dI_dy[rwb:rwu, cll:clr] + 3*phase_grad_y[rwb:rwu, cll:clr], color='blue', width=0.0007)
+
+plt.axis('equal')

@@ -16,7 +16,7 @@ from scipy.interpolate import RegularGridInterpolator
 import time
 
 import pandas as pd
-from scipy import constants
+
 import scipy.io
 from pathlib import Path
 from datetime import datetime
@@ -76,13 +76,38 @@ def get_weber_acceleration_grids(Psi, dx, dy, g_factor=19.1):
     F_grad_x = F_grad_coeff * dI_dx / denom
     F_grad_y = F_grad_coeff * dI_dy / denom
 
-    F_rad_coeff = (hbar * Gamma / 2) * p_0
+    F_rad_coeff = (hbar * Gamma / 2) * p_0  # *10 for debugging
     F_rad_x = F_rad_coeff * phase_grad_x / denom
     F_rad_y = F_rad_coeff * phase_grad_y / denom
 
     # Accelerations
     a_x = (F_grad_x + F_rad_x) / m_Rb87  # *.2 for debugging
     a_y = (F_grad_y + F_rad_y) / m_Rb87 - 9.8  # gravity added
+
+    print(['ax_phase', 'ay_phase', 'ax_I', 'ay_I'], 'maximos')
+    print([np.max(F_rad_x) / m_Rb87, np.max(F_rad_y) / m_Rb87],
+          [np.max(F_grad_x) / m_Rb87, np.max(F_grad_x) / m_Rb87])
+
+   # --- TABLE DISPLAY LOGIC ---
+    data = [
+        ("Omega_0 (Resonance)", f"{omega_0:.4e}", "rad/s"),
+        ("Omega_L (Laser)", f"{omega_L:.4e}", "rad/s"),
+        ("Delta Omega (Detuning)", f"{delta_omega:.4e}", "rad/s"),
+        ("g (Coupling)", f"{g:.4e}", "Hz"),
+        ("p_0 (Saturation)", f"{p_0:.4e}", "Unitless"),
+        ("Max Intensity (I)", f"{np.max(I):.4e}", "Normalized"),
+        ("F_grad_coeff", f"{F_grad_coeff:.4e}", "N*m"),
+        ("F_rad_coeff", f"{F_rad_coeff:.4e}", "N*m/rad"),
+        ("Max Acceleration X", f"{np.max(np.abs(a_x)):.4e}", "m/s^2")
+    ]
+
+    print("\n" + "="*50)
+    print(f"{'Quantity':<25} | {'Value':<12} | {'Unit'}")
+    print("-" * 50)
+    for name, val, unit in data:
+        print(f"{name:<25} | {val:<12} | {unit}")
+    print("="*50 + "\n")
+    # ---------------------------
 
     return a_x, a_y, I
 
@@ -191,7 +216,7 @@ dir0 = Path(r'C:\Users\clher\Documents\programacion\projects\ultracold_Rb87')
 folder_path = Path(
     r"C:\Users\clher\Documents\programacion\projects\ultracold_Rb87\data")
 
-Psi_path = dir0 / 'Psi.npy'
+Psi_path = dir0 / 'data' / 'Psi.npy'
 Psi = np.load(Psi_path)
 # Psi = np.load('Psi_cro_324.npy')
 # Psi = np.load('/content/Psi_cropped_small.npy')
@@ -217,8 +242,16 @@ Psi = np.load(Psi_path)
 # mc = round(m*crf)
 # nc = round(n*crf)
 # Psi = Psi_or[mc:-mc, nc:-nc]  # psi cropped
+# Psi = (psi_epio2n)
+# Psi = psi_epio2n[: 168:-1]
+# Psi = psi_epio2n[225:, 168:-168] # psi_epio2n comes from web_gen
+npx_crop = 90
+Psi = np.flipud(psi_epio2n[npx_crop:-1, :])
 print(Psi.shape)
 
+plt.pcolormesh(np.abs(Psi)**2)
+plt.figure()
+plt.pcolormesh(np.angle(Psi))
 # %%
 dx = dy = 0.8e-6  # pixel size times telescope reduction
 ny, nx = Psi.shape
@@ -228,6 +261,26 @@ y_sys_coord = (np.arange(ny) - ny/2) * dy
 
 # add indexing='ji' if ny, nx, these are taken from coords instead columns and rows
 X_grid, Y_grid = np.meshgrid(x_sys_coord, y_sys_coord)
+print(X_grid.shape)
+
+plt.pcolormesh(X_grid, Y_grid, np.abs(Psi)**2)
+# %% this block comes from weber_gen tp be consistent with Psi definition
+# Defining rectangular coords to be displayed on the SLM, and croping Weber
+# profile for the cloude simulation
+nr, mc = Psi.shape  # nr-> num rows, mc -> num cols
+tel_sc = 1e-6
+# limits for the paper image cropped
+x_sys_coord = np.linspace(-670 * tel_sc / 2, 670 * tel_sc / 2, mc)
+y_sys_coord = np.linspace(-420 * tel_sc / 2,
+                          (420 - npx_crop*.8*2) * tel_sc / 2, nr)
+
+# Note: xx is vertical, yy is horizontal, so we exchange them
+kp_pxsi = 1
+X_grid, Y_grid = np.meshgrid(x_sys_coord*kp_pxsi, y_sys_coord*kp_pxsi)
+
+print(X_grid.shape)
+plt.figure()
+plt.pcolormesh(X_grid, Y_grid, np.abs(Psi)**2)
 
 # %% Get accelerations fields
 print("Calculating Field Accelerations...")
@@ -236,69 +289,72 @@ ffx, ffy, Intensity = get_weber_acceleration_grids(
 print("accelerations, complete")
 print(ffx.shape, ffy.shape, Intensity.shape)
 # #%%
-# plt.figure()
-# plt.quiver(X_grid, Y_grid, ffx, ffy, Intensity)
-# plt.show()
+plt.figure()
+plt.quiver(X_grid, Y_grid, ffx, ffy, Intensity)
+plt.show()
 # %% Interp acceleration fields
 interp_fx = RegularGridInterpolator(
     (y_sys_coord, x_sys_coord), ffx, method='cubic', bounds_error=False, fill_value=0.0)
 interp_fy = RegularGridInterpolator(
     (y_sys_coord, x_sys_coord), ffy, method='cubic', bounds_error=False, fill_value=-9.8)
 
-# %% this part shows if the interpolations is behaving as expected
+# %%
+# this part shows if the interpolations is behaving as expected
 
 # 2. Create the Extended Grid
 # # ---------------------------------------------------------
-# # Make the limits significantly wider than the original 0-5 and 0-4 range
-# w_factor = 1.03  # widering factor
-# x_ext = (np.arange(nx*w_factor) - nx*w_factor/2) * dx
-# y_ext = (np.arange(ny*w_factor) - ny*w_factor/2) * dy
-# X_ext, Y_ext = np.meshgrid(x_ext, y_ext)
+# Make the limits significantly wider than the original 0-5 and 0-4 range
+w_factor = .5  # 1.03  # widering factor
+extra_factor = 1.5
+x_ext = (np.arange(nx*w_factor) - nx*w_factor/2*extra_factor) * dx
+y_ext = (np.arange(ny*w_factor) - ny*w_factor/2*extra_factor) * dy
+X_ext, Y_ext = np.meshgrid(x_ext, y_ext)
+nc, mc = X_ext.shape
+print(mc, nc)
+# ---------------------------------------------------------
+# 3. Evaluate Interpolators on Extended Grid
+# ---------------------------------------------------------
+# Stack points into (N, 2).
+# Note: Because your interpolator takes (y, x), we stack Y_ext then X_ext
+eval_points = np.column_stack((Y_ext.ravel(), X_ext.ravel()))
 
-# # ---------------------------------------------------------
-# # 3. Evaluate Interpolators on Extended Grid
-# # ---------------------------------------------------------
-# # Stack points into (N, 2).
-# # Note: Because your interpolator takes (y, x), we stack Y_ext then X_ext
-# eval_points = np.column_stack((Y_ext.ravel(), X_ext.ravel()))
+# Evaluate and reshape back to the 2D grid shape for plotting
+ffx_ext = interp_fx(eval_points).reshape(X_ext.shape)
+ffy_ext = interp_fy(eval_points).reshape(X_ext.shape)
 
-# # Evaluate and reshape back to the 2D grid shape for plotting
-# ffx_ext = interp_fx(eval_points).reshape(X_ext.shape)
-# ffy_ext = interp_fy(eval_points).reshape(X_ext.shape)
+# ---------------------------------------------------------
+# 4. Plot the Results
+# ---------------------------------------------------------
+fig, ax = plt.subplots(figsize=(8, 6))
 
-# # ---------------------------------------------------------
-# # 4. Plot the Results
-# # ---------------------------------------------------------
-# fig, ax = plt.subplots(figsize=(8, 6))
+col_lim = int(nc*.6)  # 60
+row_lim = int(mc*.6)  # 100
+# Plot the vector field
+ax.quiver(X_ext[0:col_lim, 0:row_lim], Y_ext[0:col_lim, 0:row_lim], ffx_ext[0:col_lim, 0:row_lim], ffy_ext[0:col_lim, 0:row_lim],
+          color='blue', pivot='middle', width=0.0005)
 
-# col_lim = 60
-# row_lim = 100
-# # Plot the vector field
-# ax.quiver(X_ext[0:col_lim, 0:row_lim], Y_ext[0:col_lim, 0:row_lim], ffx_ext[0:col_lim, 0:row_lim], ffy_ext[0:col_lim, 0:row_lim],
-#           color='blue', pivot='middle', width=0.001)
+# Draw a red rectangle to show the original m x n boundary
+# rect = patches.Rectangle(
+#     (x_sys_coord.min(), y_sys_coord.min()),           # (x, y) bottom-left corner
+#     x_sys_coord.max() - x_sys_coord.min(),            # Width
+#     y_sys_coord.max() - y_sys_coord.min(),            # Height
+#     linewidth=2, edgecolor='red', facecolor='none', linestyle='--', label='Original Boundary'
+# )
+# ax.add_patch(rect)
 
-# # Draw a red rectangle to show the original m x n boundary
-# # rect = patches.Rectangle(
-# #     (x_sys_coord.min(), y_sys_coord.min()),           # (x, y) bottom-left corner
-# #     x_sys_coord.max() - x_sys_coord.min(),            # Width
-# #     y_sys_coord.max() - y_sys_coord.min(),            # Height
-# #     linewidth=2, edgecolor='red', facecolor='none', linestyle='--', label='Original Boundary'
-# # )
-# # ax.add_patch(rect)
-
-# # Formatting
-# ax.set_title("Force Field Interpolation (Zero Outside Boundary)")
-# ax.set_xlabel("X Coordinate")
-# ax.set_ylabel("Y Coordinate")
+# Formatting
+ax.set_title("Force Field Interpolation (Zero Outside Boundary)")
+ax.set_xlabel("X Coordinate")
+ax.set_ylabel("Y Coordinate")
 # ax.legend(loc='upper right')
-# ax.grid(True, alpha=0.3)
+ax.grid(True, alpha=0.3)
 
-# plt.axis('equal')  # Keeps the aspect ratio square so vectors point accurately
-# plt.show()
+plt.axis('equal')  # Keeps the aspect ratio square so vectors point accurately
+plt.show()
 # ---------------------------------------------------------
 # %% # 1. Simulation Setup, cloud init
 # ---------------------------------------------------------
-Np = 50
+Np = 5000
 
 # --- 2. Initialize Cloud ---
 print("Initializing Atomic Cloud...")
@@ -311,7 +367,7 @@ state0 = np.concatenate((x0, y0, vx0, vy0))
 # t_end = 9.0e-3 #time in seconds
 # t_eval = np.linspace(0, t_end, 200)
 
-t_end = 18.0e-3  # time in seconds
+t_end = 17.0e-3  # time in seconds
 t_span = (0, t_end)
 t_eval = np.linspace(t_span[0], t_span[1], 100)
 
@@ -321,7 +377,7 @@ print("Solving ODEs...")
 print(f"Solving ODEs for {Np} particles over {t_end} seconds...")
 # Radau RK45 BDF LSODA
 ode_method_list = ['Radau', 'RK45', 'BDF', 'LSODA']
-ode_method = ode_method_list[3]
+ode_method = ode_method_list[1]
 
 # "tic"
 start_time = time.perf_counter()
@@ -445,7 +501,7 @@ v_lims = (0, 18)
 
 fig_q, ax_q = plt.subplots(figsize=(9, 9))
 ax_q.quiver(uuu[::2, ::2], vvv[::2, ::2], ffx[::2, ::2],
-            ffy[::2, ::2], color='gray', alpha=0.4)
+            ffy[::2, ::2], color='gray', alpha=0.4, width=0.0005)
 
 # ax_q.pcolormesh(uuu[::2, ::2], vvv[::2, ::2], abs(Psi[::2, ::2]), alpha=.3, cmap = 'gray', shading='interp')
 ax_q.plot(u_sol_mu[1:10, :].T, v_sol_mu[1:10, :].T, '.', mec='0.7',  ls='')
@@ -456,7 +512,7 @@ ax_q.set_ylim(v_lims)
 plt.show()
 
 
-# %%
+# %% Plot clouds
 fig, axes = plt.subplots(1, 5, figsize=(22, 6))
 
 # Expanded limits so the final cloud is not cropped
@@ -523,7 +579,8 @@ ax_q.set_title(f'{ode_method}\n(ode = {ode_method})')
 ax_q.set_xlim(x_lims)
 ax_q.set_ylim(y_lims)
 plt.show()
-# %%
+# %% camerea shot
+plt.figure()
 plot_ccd_density(t_target=7e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
                  t_eval=t_eval, pixel_size=8)
 

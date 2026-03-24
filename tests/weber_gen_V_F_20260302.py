@@ -22,13 +22,13 @@ timestamp = datetime.now().strftime("%H%M%S")  # time stamp for saving
 # bmp_name = f"W_a{a_param}_kp{kp}_{timestamp}.bmp"
 
 # %% --- Parameters ---
-um, vm = 14, 14
-us = 0.02
+um, vm = 15.5, 15.5
+us = 0.008
 vs = us  # / 2
 # u = np.arange(0, um + us, us)
 # v = np.arange(0, vm + vs, vs)
-u = np.linspace(-um, um, int(um/us))
-v = np.linspace(0, vm, int(vm/vs))
+u = np.linspace(-um, um, int(um/us/2)*2)
+v = np.linspace(0, vm, int(vm/vs/2)*2)
 uneg = u[u < 0]  # -u[1:][::-1]
 u_non_neg = u[u >= 0]
 # uc = np.concatenate([uneg, u])
@@ -140,7 +140,8 @@ plt.show()
 # %%
 # --- SLM Mapping ---
 tel_sc = .15
-yy = np.linspace(-1920 * tel_sc / 2, 1920 * tel_sc / 2, 1920)
+yy = np.linspace(-1920 * tel_sc / 2, 1920 * tel_sc /
+                 2, 1920)  # limits for the SLM
 xx = np.linspace(-1080 * tel_sc / 2, 1080 * tel_sc / 2, 1080)
 # Note: xx is vertical, yy is horizontal, so we exchange them
 yyy, xxx = np.meshgrid(yy, xx)
@@ -244,12 +245,13 @@ plt.title(f"Weber Beam Intensity (a={a_param})")
 plt.colorbar()
 plt.show()
 # %%
-[UUo, VVo] = np.meshgrid(Uoc, Vo)
+[UUo, VVo] = np.meshgrid(Uo, Vo)
 # %%
 figure(235)
 plt.pcolormesh(UU, VV, np.angle(VVo*VVo*UUo*UUo))
 plt.title(f"Weber Beam Intensity (a={a_param})")
-# plt.colorbar()
+plt.colorbar()
+plt.axis('equal')
 plt.show()
 
 # %%
@@ -297,11 +299,111 @@ plt.show()
 
 # %% Crop Psi
 m, n = psi_epio2n.shape
-crf = .45  # .477  # crop factor #to crop psi original
+crf = .33  # .477  # crop factor #to crop psi original
+mc = round(m*crf)
+nc = round(n*crf)
+Psi_crop = psi_epio2n[mc:-mc, nc:-nc].copy()  # psi cropped
+print(Psi_crop.shape)
+
+figure(558)
+plt.quiver(np.real(Psi_crop), np.imag(Psi_crop), width=0.0003)
+
+
+# %% crop phase
+
+m, n = psi_epio2n.shape
+crf = .4  # .477  # crop factor #to crop psi original
 mc = round(m*crf)
 nc = round(n*crf)
 Psi_crop = psi_epio2n[mc:-mc, nc:-nc]  # psi cropped
 print(Psi_crop.shape)
 
-figure(555)
-plt.quiver(np.real(Psi_crop), np.imag(Psi_crop), width=0.0003)
+rwb, rwu = 11, -30
+cll, clr = 70, -70
+
+cphase = np.angle(Psi_crop)
+
+plt.figure(556, figsize=(15, 4))
+plt.pcolormesh(np.angle(Psi_crop)[rwb:rwu, cll:clr], cmap='jet')
+plt.colorbar()
+plt.quiver(np.cos(cphase[rwb:rwu, cll:clr]), np.sin(
+    cphase[rwb:rwu, cll:clr]), width=0.0006)
+
+# %%
+# %%
+m, n = psi_epio2n.shape
+crf = .3  # .477  # crop factor #to crop psi original
+mc = round(m*crf)
+nc = round(n*crf)
+Psi_crop = psi_epio2n[mc:-mc, nc:-nc].copy()  # psi cropped
+print(Psi_crop.shape)
+
+rwb, rwu = 100, -1
+cll, clr = 0, -100
+
+Psi_crop = psi_epio2n[mc:-mc, nc:-nc].copy()
+# Field gradients
+I = np.abs(Psi_crop)**2
+dI_dy, dI_dx = np.gradient(I, dy, dx)
+
+dPsi_dy, dPsi_dx = np.gradient(Psi_crop, dy, dx)
+Psi_star = np.conjugate(Psi_crop)
+phase_grad_y = np.imag(Psi_star * dPsi_dy)
+phase_grad_x = np.imag(Psi_star * dPsi_dx)
+
+plt.quiver(dI_dx[rwb:rwu, cll:clr],
+           dI_dy[rwb:rwu, cll:clr], color='blue', width=0.0007)
+
+# plt.figure(558, figsize=(15, 4))
+# plt.pcolormesh((np.abs(Psi_crop)[rwb:rwu, cll:clr])**2, cmap='jet')
+# plt.colorbar()
+
+plt.quiver(phase_grad_x[rwb:rwu, cll:clr],
+           phase_grad_y[rwb:rwu, cll:clr], color='red', width=0.0005)
+
+# %%
+plt.figure(559, figsize=(15, 4))
+plt.quiver(dI_dx[rwb:rwu, cll:clr],
+           dI_dy[rwb:rwu, cll:clr], color='blue', width=0.0005)
+
+phase_grad_x_temp = phase_grad_x.copy()/phase_grad_x.max()
+phase_grad_y_temp = phase_grad_y.copy()/phase_grad_y.max()
+
+plt.quiver(phase_grad_x_temp[rwb:rwu, cll:clr],
+           phase_grad_y[rwb:rwu, cll:clr], color='red', width=0.0005)
+
+# %%
+GImax = np.max([np.abs(dI_dy).max(), np.max(dI_dx).max()])
+dI_dy, dI_dx = dI_dy/GImax, dI_dx/GImax
+
+
+GPmax = np.max([np.abs(phase_grad_x).max(), np.max(phase_grad_y).max()])
+
+phase_grad_y_norm = phase_grad_y/GPmax
+phase_grad_x_norm = phase_grad_x/GPmax
+
+
+# %%
+plt.figure(560, figsize=(8, 4))
+
+
+plt.quiver(dI_dx[rwb:rwu, cll:clr] + 3*phase_grad_x[rwb:rwu, cll:clr],
+           dI_dy[rwb:rwu, cll:clr] + 3*phase_grad_y[rwb:rwu, cll:clr], color='blue', width=0.0007)
+
+plt.axis('equal')
+
+# %% Cambio de coordenadas mejorado
+
+
+def rect_to_parabolic_array(
+    x: np.ndarray, y: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """Vectorised version for NumPy arrays."""
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    r = np.hypot(x, y)
+    tau = np.sqrt(np.maximum(r + y, 0.0))
+    sigma = np.sqrt(np.maximum(r - y, 0.0))
+    sigma = np.where(x < 0, -sigma, sigma)
+    return sigma, tau
+# %%

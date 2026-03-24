@@ -27,12 +27,14 @@ For x < 0, σ is negated (or the sign is tracked separately).
 # import matplotlib
 # from typing import Union, Tuple
 
+
 from scipy.optimize import curve_fit, minimize
 import math
 import numpy as np
 import mpmath
 import matplotlib.pyplot as plt
 from scipy.interpolate import UnivariateSpline
+from typing import Tuple
 hyp1f1_vec = np.frompyfunc(
     lambda a, b, z: complex(mpmath.hyp1f1(a, b, z)), 3, 1)
 
@@ -41,7 +43,7 @@ hyp1f1_vec = np.frompyfunc(
 
 def rect_to_parabolic(
     x: float, y: float
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """
     Convert rectangular coordinates (x, y) to parabolic coordinates (sigma, tau).
 
