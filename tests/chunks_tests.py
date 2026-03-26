@@ -5,6 +5,10 @@ Created on Sat Feb 14 14:26:02 2026
 @author: clher
 """
 # %%
+from types import SimpleNamespace
+import pickle
+from datetime import datetime
+import json
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.patches as patches
 import argparse
@@ -245,3 +249,89 @@ ax.grid(True, alpha=0.3)
 
 plt.axis('equal')  # Keeps the aspect ratio square so vectors point accurately
 plt.show()
+
+# %% json file load
+
+data = {
+    "timestamp": datetime.now(),
+    "values": (1, 2, 3)          # tuple
+}
+
+
+def convert(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()   # convert datetime to string
+    if isinstance(obj, tuple):
+        return list(obj)         # convert tuple to list
+    raise TypeError(f"Type {type(obj)} not serializable")
+
+
+with open(r"..\data\processed\20260324_from_colab\data.json", "w") as file:
+    json.dump(data, file, default=convert)   # custom serializer
+
+# On loading, you'd need to convert back (e.g., parse datetime strings)
+# %%
+
+with open(r"..\data\processed\20260324_from_colab\data.json", "r") as file:
+    loaded_data = json.load(file)  # read JSON back into a dictionary
+
+print(loaded_data)
+
+# %% save picke
+
+data = {
+    "name": "Alice",
+    "age": 30,
+    "skills": {"Python", "Data Analysis"},  # set is allowed
+    "active": True
+}
+
+# note "wb" for binary write
+with open(r"..\data\processed\20260324_from_colab\data.pkl", "wb") as file:
+    pickle.dump(data, file)
+
+# %% load picke
+
+path = r'..\data\processed\20260324_from_colab\data.pkl'
+
+with open(path, 'rb') as f:
+    data_pkl_loaded = pickle.load(f)
+
+# %%
+filename = "hypergeometric_results_colab.pkl"
+filePath = data_path / filename
+
+
+def dict_to_ns(d):
+    if isinstance(d, dict):
+        return SimpleNamespace(**{k: dict_to_ns(v) for k, v in d.items()})
+    elif isinstance(d, list):
+        return [dict_to_ns(x) for x in d]
+    else:
+        return d
+
+
+with open(filePath, 'rb') as f:
+    raw = pickle.load(f)
+
+results = dict_to_ns(raw)  # preserves structure, just changes access style
+# %%
+listw = []
+data = {"name": "Alice", "age": 30, 'w': listw}
+# %%
+data.update({"w": listw.append(33)})
+
+print(data)
+# Output: {'name': 'Alice', 'age': 30, 'city': 'New York', 'active': True}
+
+# %%
+hypergeometric_results.update({
+    'parameters': {
+        'a_param': a_param,
+        'kp': kp},
+    'hypergf': {
+        'F11Ue_nn': F11Ue_nn.copy(),
+        'F11Uo_nn': F11Uo_nn.copy(),
+        'F11Ve': F11Ve.copy(),
+        'F11Vo': F11Vo.copy()}
+})

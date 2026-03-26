@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# %% Load pkgs-*- coding: utf-8 -*-
 """
 Created on Tue Mar 24 11:49:27 2026
 
@@ -9,7 +9,8 @@ This script makes the Weber profiles with hypergeometric functions in parabolic
 coordinates, then it is interpolated to transform to rectangular coordinates.
 Then it simulates the fall of Rb87 in the force field defined by the Weber beam
 and gravity.
-Pay attention to the exchange $x$ -> $y$, to have $x$ vertical. Or letting $x$ be horizontal and changing the coordinates in the Rb87 cloud.
+Pay attention to the exchange $x$ -> $y$, to have $x$ vertical. Or letting $x$ be horizontal and changing the coordinates in the Rb87 cloud. 
+Based on Hernández-Cedillo C.L. et al. Phys. Rev. A, 87 2013
 """
 
 
@@ -20,11 +21,13 @@ Pay attention to the exchange $x$ -> $y$, to have $x$ vertical. Or letting $x$ b
 # Convert mpmath function to a vectorized numpy function
 # This allows us to pass arrays to hyp1f1
 
+
 # %% Define functions
 
 
 
 
+import json
 from pathlib import Path
 import scipy.io
 from scipy import constants
@@ -39,6 +42,7 @@ import time
 import pandas as pd
 import matplotlib.patches as patches
 from matplotlib.patches import Rectangle
+import pickle  # load pkl files
 def safe_complex(x):  # A helper function to safely parse complex strings like '(5.89e-01+1.03e-02j)'
     if pd.isna(x):
         return 0j
@@ -166,7 +170,8 @@ def plot_ccd_density(t_target, x_sol, y_sol, t_eval, pixel_size=.1):
     """
     # Find the closest time index in our simulation results
     idx = np.argmin(np.abs(t_eval - t_target))
-    actual_t = t_eval[idx]
+    actual_t = t_eval[idx]*1e3
+    Np = x_sol.shape[0]
 
     x, y = x_sol[:, idx], y_sol[:, idx]
 
@@ -182,7 +187,7 @@ def plot_ccd_density(t_target, x_sol, y_sol, t_eval, pixel_size=.1):
 
     # hist2d creates the square CCD pixels. cmin=1 leaves empty pixels blank.
     counts, _, _, im = ax.hist2d(
-        x, y, bins=[x_bins, y_bins], cmap='plasma', cmin=1)
+        x, y, bins=[x_bins, y_bins], cmap='jet', cmin=1)
 
     # Draw the boundary of the force field if it falls in the camera view
     rect_ref = Rectangle((0, 0), 10, 10, linewidth=1.5,
@@ -194,7 +199,8 @@ def plot_ccd_density(t_target, x_sol, y_sol, t_eval, pixel_size=.1):
     ax.set_ylim(y_min, y_max)
     ax.set_aspect('equal')  # Forces pixels to be perfectly square
 
-    ax.set_title(f'Auto-Scaled CCD Camera View (t = {actual_t:.2f}s)')
+    ax.set_title(f't = {actual_t:.1f}ms, a={
+                 a_param}, Np = {Np}, ODE={ode_method}')
     ax.set_xlabel('X Position')
     ax.set_ylabel('Y Position')
     ax.grid(True, alpha=0.3)
@@ -212,7 +218,7 @@ def particle_cloud_motion(t, state):
     return np.concatenate((vx, vy, Fx, (Fy)))
 
 
-# %% Method 1: Modern approach (Recommended)
+# %% random seeds
 rng = np.random.default_rng(42)
 # random_numbers = rng.random(5)
 
@@ -228,9 +234,11 @@ timestamp = datetime.now().strftime("%H%M%S")  # time stamp for saving
 
 hypergeometric_results = []  # Initialize list to store results
 
-# %% --- Parameters ---
+# %% Weber gen--- Parameters ---
+% % timeit
+readme = "kp =1, since it only re-scale the spatial coordinates. The first block use units of pixel size for distance units."
 um, vm = 16, 16
-us = 0.01
+us = 0.05
 vs = us  # / 2
 # u = np.arange(0, um + us, us)
 # v = np.arange(0, vm + vs, vs)
@@ -251,9 +259,11 @@ zu = 1j * kp * u**2
 zu_noneg = 1j * kp * u_non_neg**2
 zv = 1j * kp * v**2
 
-vars0 = dict(u=u.copy(), v=v.copy(), a=a_param, kp=kp)
-
-# %%
+# vars0 = dict(u=u.copy(), v=v.copy(), a=a_param, kp=kp)
+params = dict(a=a_param, kp=kp, readme=readme, lambd=lambd,
+              sp=sp, um=um, vm=vm, us=us, vs=vs)
+sparams = pd.Series(params)
+# %% hypergeometric functions
 print("Computing hypergeometric functions (this may take a moment)...")
 # U components: a = 1/4 - i*a/2 or 3/4 - i*a/2
 start_time = time.perf_counter()
@@ -275,7 +285,35 @@ print(end_time-start_time)
 
 print("Computing hypergeometric functions finished")
 
+# %% Or load from G Colab data
+# F11Ue_nn_GColab = np.load('C:/Users/clher/Documents/programacion/projects/ultracold_Rb87/data/processed/20260324_from_colab/F11Ue_nn.npy')
+
+data_path = Path(
+    r"..\data\processed\20260324_from_colab")
+
+# Psi_path = folder_path / 'Psi_a10_kp3.mat'
+# mat_data = scipy.io.loadmat(Psi_path)  # load matlab mat file
+# Psi_or = mat_data['Psi']  # psi original
+# df = pd.DataFrame(Psi_or)
+#
+# Psi = df.map(safe_complex).values if hasattr(
+#     df, 'map') else df.applymap(safe_complex).values
+
+# load picke
+filename = "hypergeometric_results_colab_a0,5,10,20,40,us-0p01.pkl"
+filePath = data_path / filename
+
+with open(filePath, 'rb') as f:  # "rb" for binary
+    dataloaded = pickle.load(f)
+
+# data = dataloaded[0]
 # %%
+entry = dataloaded[0]
+
+for key, value in entry.items():
+    globals()[key] = value
+
+
 Ue_nn, Uo_nn, Ve, Vo = F11Ue_nn.copy(), F11Uo_nn.copy(), F11Ve.copy(), F11Vo.copy()
 size_Uneg_start = len(uneg) - len(u_non_neg)
 Ueneg = Ue_nn[size_Uneg_start:][::-1]
@@ -608,8 +646,8 @@ Y_mu = Y_grid*1e6
 fig, axes = plt.subplots(1, 5, figsize=(22, 6))
 
 # Expanded limits so the final cloud is not cropped
-x_lims = (-300, 300)
-y_lims = (-800, 250)
+x_lims = (-350, 350)
+y_lims = (-1250, 200)
 
 # Create global CCD bins for the 1x5 plot so the "camera" resolution stays constant
 pixel_size_global = 8
@@ -624,7 +662,7 @@ ax_traj.quiver(X_mu[::2, ::2], Y_mu[::2, ::2], ffx[::2, ::2],
                ffy[::2, ::2], color='gray', alpha=0.4)
 # ax_traj.add_patch(Rectangle((0, 0), 100, 100, linewidth=2, edgecolor='red', facecolor='none', linestyle='--'))
 # ax_traj.add_patch(rect)
-for i in range(100):
+for i in range(33):
     ax_traj.plot(x_sol_mu[i, :], y_sol_mu[i, :], alpha=0.3,
                  linewidth=0.8, color='blue')
 ax_traj.set_title('Trajectories (100 Particles)')
@@ -638,7 +676,7 @@ for i, (ax, idx, title) in enumerate(zip(axes[1:], time_indices, titles)):
 
     # Use hist2d instead of hexbin
     _, _, _, im = ax.hist2d(current_x, current_y, bins=[
-                            global_x_bins, global_y_bins], cmap='plasma', cmin=1)
+                            global_x_bins, global_y_bins], cmap='jet', cmin=1)
     ax.add_patch(Rectangle((0, 0), 10, 10, linewidth=1,
                  edgecolor='red', facecolor='none', linestyle='--', alpha=0.5))
     ax.set_title(f'{title}\n(t = {t_eval[idx]*1e3:.2f}ms)')
@@ -654,7 +692,20 @@ axes[0].set_ylabel('Y')
 
 fig.colorbar(im, ax=axes, label='Particles per Pixel', fraction=0.02, pad=0.02)
 #
-# %% camerea shot
-plt.figure()
-plot_ccd_density(t_target=11e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
+# %% camerea shot at paper times
+plot_ccd_density(t_target=7e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
                  t_eval=t_eval, pixel_size=8)
+
+plot_ccd_density(t_target=12e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
+                 t_eval=t_eval, pixel_size=8)
+# %%
+
+# %% save data
+# note "wb" for binary write
+# with open(r"..\data\processed\20260324_from_colab\hypergeometric_results_colab.pkl", "wb") as file:
+#     pickle.dump(data, file)
+
+
+# # load picke
+# with open("data.pkl", "wb") as file:       # note "wb" for binary write
+#     pickle.dump(data, file)
