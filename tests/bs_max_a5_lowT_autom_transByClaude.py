@@ -14,6 +14,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import savgol_filter
 from scipy.interpolate import interp1d
 from datetime import datetime
+from pathlib import Path
 
 # ─────────────────────────────────────────────
 # Helper functions (replaces MATLAB .m files)
@@ -87,6 +88,18 @@ def r_squared(y_actual, y_predicted):
 
 salvar = 'n'
 
+
+# ==========================================
+# Path Configuration (Cross-Platform)
+# ==========================================
+# Use Path() for the base directories
+if os.name == 'nt':  # Windows
+    base_dir = Path(r"E:\from CL7 HDD\proy t\lab ICN SLM\programas\beam_splitter")
+else:  # Linux / Pop!_OS
+    # Adjust this to where your drive is mounted on Linux
+    # Usually under /media/user/DRIVENAME/...
+    base_dir = Path("/mnt/SharedDisk/from CL7 HDD/proy t/lab ICN SLM/programas\beam_splitter")
+
 a = 5
 if a == 5:
     mw  = [43, 36, 30]
@@ -100,7 +113,7 @@ legp = [str(v)        for v in mw]          # power labels
 legt = [f"{v}ms"      for v in tof]         # tof labels
 
 # Base directory (update to your local path)
-dirtemp1 = r'E:\from CL7 HDD\proy t\lab ICN SLM\programas\beam_splitter\a5kz09989\newCI_roc' + os.sep
+dirtemp1 = dirtemp1 = base_dir / "a5kz09989" / "newCI_roc"
 
 # ─────────────────────────────────────────────
 # Output storage
