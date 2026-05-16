@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from datetime import datetime
 import time
-import pandas as pd
+# import pandas as pd
 
 # Convert mpmath function to a vectorized numpy function
 # This allows us to pass arrays to hyp1f1
@@ -23,7 +23,7 @@ timestamp = datetime.now().strftime("%H%M%S")  # time stamp for saving
 
 # %% --- Parameters ---
 um, vm = 16, 16
-us = 0.01
+us = 0.05
 vs = us  # / 2
 # u = np.arange(0, um + us, us)
 # v = np.arange(0, vm + vs, vs)

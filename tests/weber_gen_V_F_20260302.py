@@ -23,7 +23,7 @@ timestamp = datetime.now().strftime("%H%M%S")  # time stamp for saving
 
 # %% --- Parameters ---
 um, vm = 15.5, 15.5
-us = 0.008
+us = 0.08
 vs = us  # / 2
 # u = np.arange(0, um + us, us)
 # v = np.arange(0, vm + vs, vs)
@@ -159,7 +159,7 @@ psie = np.outer(Ue, Ve)
 psio = np.outer(Uo, Vo)
 
 phase_uv = np.outer(phase_u, phase_v)
-weight_odd = 1
+weight_odd = 10
 weight_even = np.pi
 psi_epio = (weight_even*psie/np.max(np.abs(psie)) + weight_odd*1j*psio /
             np.max(np.abs(psio))) * phase_uv

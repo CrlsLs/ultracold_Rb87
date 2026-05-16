@@ -11,6 +11,8 @@ Fuction to generate parabolic functions for Weber beams.
 
 # Convert mpmath function to a vectorized numpy function
 # This allows us to pass arrays to hyp1f1
+
+# %%
 from pathlib import Path
 import scipy.io
 from scipy import constants
@@ -30,14 +32,12 @@ import pickle
 hyp1f1_vec = np.frompyfunc(
     lambda a, b, z: complex(mpmath.hyp1f1(a, b, z)), 3, 1)
 
-timestamp = datetime.now().strftime("%H%M%S")  # time stamp for saving
-# bmp_name = f"W_a{a_param}_kp{kp}_{timestamp}.bmp"
-
+PROJECT_ROOT = Path(__file__).parent.parent
 
 # %% --- Parameters ---
 readme = "kp =1, since it only re-scale the spatial coordinates. The first block use units of pixel size for distance units."
-um, vm = 14, 14
-us = 0.1  # 0.1 only to test, the final data with more prescition will be done in Colab
+um, vm = 20, 20
+us = 0.9  # 0.1 only to test, the final data with more prescition will be done in Colab
 vs = us  # / 2
 # u = np.arange(0, um + us, us)
 # v = np.arange(0, vm + vs, vs)
@@ -100,7 +100,7 @@ for params in new_params:
 
     start_time = time.perf_counter()
     F11Ve = hyp1f1_vec(0.25 + 0.5j * a_param, 0.5, zv).astype(complex)
-    F11Vo = hyp1f1_vec(np_val/4 + 0.5j * a_param, np_val/2, zv).astype(complex)
+    F11Vo = hyp1f1_vec(.75 + 0.5j * a_param, 1.5, zv).astype(complex)
     end_time = time.perf_counter()
     print(f"V components calculation time: {end_time-start_time:.2f}s")
 
@@ -124,3 +124,45 @@ for i, result_set in enumerate(hypergeometric_results):
     print(f"  kp: {result_set['kp']}")
     print(f"  F11Ue_nn shape: {result_set['F11Ue_nn'].shape}")
     print(f"  F11Ve shape: {result_set['F11Ve'].shape}")
+
+# timestamp = datetime.now().strftime("%Y%m%d_%H%M")  # time stamp for saving
+# %% save data
+
+paramsf = dict(kp=kp, sp=sp, um=um, vm=vm, us=us, vs=vs, readme=readme)
+
+
+def setup_output_directories(output_base: Path) -> dict:
+    """Create output directories and return paths."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    dirs = {
+        'base': output_base,
+        # 'figures': output_base / 'figures' / f'{timestamp}',
+        'data': output_base / 'output_tests' / f'UV_HyperGF{timestamp}',
+    }
+
+    for d in dirs.values():
+        d.mkdir(parents=True, exist_ok=True)
+
+    return dirs
+
+
+data_path = Path(r"data")
+output_base = Path(PROJECT_ROOT / data_path)
+
+dirs = setup_output_directories(output_base)
+
+# subdir = f'free_fall_{timestamp}'
+
+data_to_save = [{'common_data': paramsf,
+                'a_hypergf': hypergeometric_results}]
+
+
+filename = "hyperg_test_a0,5,10,20,40,us_0p1.pkl"
+filePath = dirs['data'] / filename
+
+# note "wb" for binary write
+with open(filePath, "wb") as file:
+    pickle.dump(data_to_save, file)
+
+print(f"Data saved tp: {filePath}")

@@ -335,3 +335,59 @@ hypergeometric_results.update({
         'F11Ve': F11Ve.copy(),
         'F11Vo': F11Vo.copy()}
 })
+
+# %%
+# dirdatan = Path(r''C:/Users/clher/Documents/programacion/projects/ultracold_Rb87/data/output_tests/UV_HyperGF20260326_124414/hyperg_test_a0,5,10,20,40,us_0p1.pkl'')
+
+dirdatan = Path(r'C:\Users\clher\Documents\programacion\projects\ultracold_Rb87\data\output_tests\UV_HyperGF20260326_124751/hyperg_test_a0,5,10,20,40,us_0p1.pkl')
+
+with open(dirdatan, 'rb') as f:  # "rb" for binary
+    dataloaded2 = pickle.load(f)
+
+# data = dataloaded[0]
+
+# %%
+with np.printoptions(threshold=6):
+    pprint(dataloaded2, compact=True, width=60)
+# pprint(data_to_load, sort_dicts=False, width=60)
+
+
+# %%
+# %% debugging
+# a_param = 5
+# kp = 1.0
+# readme = "some strings"
+# sp = 8.0
+# um, vm = 11, 11
+# us = .1
+# vs = us
+# paramsf = dict(kp=kp, readme=readme, sp=sp, um=um, vm=vm, us=us, vs=vs)
+
+# F11Ue_nn = np.arange(8)
+# F11Uo_nn = np.arange(8)
+# F11Ve = np.arange(8)
+# F11Vo = np.arange(8)
+
+# hypergeometric_results = {
+#     'a_param': a_param,
+#     'kp': kp,
+#     'F11Ue_nn': F11Ue_nn.copy(),
+#     'F11Uo_nn': F11Uo_nn.copy(),
+#     'F11Ve': F11Ve.copy(),
+#     'F11Vo': F11Vo.copy()
+# }
+
+# pds = pd.DataFrame([paramsf])
+
+# data_to_load = [{'common_data': paramsf,
+#                  'a_hypergf': hypergeometric_results}]
+
+# with np.printoptions(threshold=10):
+#     pprint(data_to_load, compact=True)
+# # pprint(data_to_load, sort_dicts=False, width=60)
+
+# del um, vm, us, vs, F11Ue_nn, kp, a_param
+
+#
+# data_to_save = [{'common_data:params': paramsf,
+#                 'a_hypergf': hypergeometric_results}]

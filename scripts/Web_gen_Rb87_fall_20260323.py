@@ -27,22 +27,23 @@ Based on Hernández-Cedillo C.L. et al. Phys. Rev. A, 87 2013
 
 
 
-import json
-from pathlib import Path
-import scipy.io
-from scipy import constants
-from scipy.integrate import solve_ivp
-import numpy as np
-import mpmath
-from scipy.interpolate import RegularGridInterpolator
-import matplotlib.pyplot as plt
-from PIL import Image
-from datetime import datetime
-import time
-import pandas as pd
-import matplotlib.patches as patches
-from matplotlib.patches import Rectangle
+from pprint import pprint
 import pickle  # load pkl files
+from matplotlib.patches import Rectangle
+import matplotlib.patches as patches
+from pathlib import Path
+import json
+import pandas as pd
+import time
+from datetime import datetime
+from PIL import Image
+import matplotlib.pyplot as plt
+from scipy.interpolate import RegularGridInterpolator
+import mpmath
+import numpy as np
+from scipy.integrate import solve_ivp
+from scipy import constants
+import scipy.io
 def safe_complex(x):  # A helper function to safely parse complex strings like '(5.89e-01+1.03e-02j)'
     if pd.isna(x):
         return 0j
@@ -232,13 +233,12 @@ hyp1f1_vec = np.frompyfunc(
 timestamp = datetime.now().strftime("%H%M%S")  # time stamp for saving
 # bmp_name = f"W_a{a_param}_kp{kp}_{timestamp}.bmp"
 
-hypergeometric_results = []  # Initialize list to store results
+# hypergeometric_results = []  # Initialize list to store results
 
 # %% Weber gen--- Parameters ---
-% % timeit
 readme = "kp =1, since it only re-scale the spatial coordinates. The first block use units of pixel size for distance units."
-um, vm = 16, 16
-us = 0.05
+um, vm = 20, 20
+us = 0.9  # .09 for tests, change later to .001
 vs = us  # / 2
 # u = np.arange(0, um + us, us)
 # v = np.arange(0, vm + vs, vs)
@@ -260,9 +260,9 @@ zu_noneg = 1j * kp * u_non_neg**2
 zv = 1j * kp * v**2
 
 # vars0 = dict(u=u.copy(), v=v.copy(), a=a_param, kp=kp)
-params = dict(a=a_param, kp=kp, readme=readme, lambd=lambd,
-              sp=sp, um=um, vm=vm, us=us, vs=vs)
-sparams = pd.Series(params)
+# params = dict(a=a_param, kp=kp, readme=readme, lambd=lambd,
+#               sp=sp, um=um, vm=vm, us=us, vs=vs)
+# sparams = pd.Series(params)
 # %% hypergeometric functions
 print("Computing hypergeometric functions (this may take a moment)...")
 # U components: a = 1/4 - i*a/2 or 3/4 - i*a/2
@@ -287,9 +287,9 @@ print("Computing hypergeometric functions finished")
 
 # %% Or load from G Colab data
 # F11Ue_nn_GColab = np.load('C:/Users/clher/Documents/programacion/projects/ultracold_Rb87/data/processed/20260324_from_colab/F11Ue_nn.npy')
-
-data_path = Path(
-    r"..\data\processed\20260324_from_colab")
+# "" UV_HyperGF20260326_165145 "" small F11's for tests
+data_path = Path(r'C:\Users\clher\Documents\programacion\projects\ultracold_Rb87\data\processed\20260324_from_colab')  # Path(
+# r"..\data\output_tests\UV_HyperGF20260326_124751")
 
 # Psi_path = folder_path / 'Psi_a10_kp3.mat'
 # mat_data = scipy.io.loadmat(Psi_path)  # load matlab mat file
@@ -300,20 +300,101 @@ data_path = Path(
 #     df, 'map') else df.applymap(safe_complex).values
 
 # load picke
-filename = "hypergeometric_results_colab_a0,5,10,20,40,us-0p01.pkl"
+# filename = "hyperg_test_a0,5,10,20,40,us_0p1.pkl"
+filename = 'hypergeometric_results_20230326.pkl'
 filePath = data_path / filename
 
 with open(filePath, 'rb') as f:  # "rb" for binary
     dataloaded = pickle.load(f)
 
 # data = dataloaded[0]
-# %%
+
 entry = dataloaded[0]
 
 for key, value in entry.items():
-    globals()[key] = value
+    # globals()[key] = value # for debugoing
+    print(key)
+
+# this value comes from active script UV_parabF_gen
+entry = dataloaded[2].copy()
+
+# %%
+with np.printoptions(threshold=5):
+    pprint(entry, sort_dicts=False, compact=True,
+           indent=2, width=60)  # compact=True,
+# %%
+com_params = entry['common_data']
+# %%
+comdf = pd.DataFrame([com_params])  # data frame for better visualization
+
+a_hypergf = entry['a_hypergf']
+a_hypergdf = pd.DataFrame(a_hypergf)  # data frame for  better visualization
+
+# %%
+# %%
+keys_loaded = []
+for key, value in entry.items():
+    globals()[key] = value  # for debugoing
+    keys_loaded.append(key)
+print(f"Warning, the following variables have been updated (or created silently):\n {
+      keys_loaded}")
+
+# %% data loaded asign, for data reconstruction
+
+kp = com_params['kp']
+readme = com_params['readme']
+sp = com_params['sp']
+um, vm = com_params['um'], com_params['vm']
+us = com_params['us']
+vs = com_params['vs']
+a_hypergf[1]['a_param']
+# %%
+for key, value in a_hypergdf['a_param'].items():
+    # globals()[key] = value
+    print([key, value])
+# %%
+a_params = [ap['a_param'] for ap in a_hypergf]
+print(a_params)
+a_param_target = 5  # pick one value from a_params
+a_param = a_param_target
+
+# data_a_hyperg = [ap['a_param'] for ap in a_hypergf]
+# %%
+
+# entry = next(d for d in a_hypergf if d["a_param"] == a_param_target)
+
+# %%
+# for key, value in a_hypergf:
+#     # globals()[key] = value # for debugoing
+#     print(key)
+
+# %% debuging
 
 
+# f11_vars = {k: v for k, v in next(
+#     d for d in a_hypergf if d["a_param"] == a_param_target).items() if k.startswith("F11")}
+
+f11vs = next(d for d in a_hypergf if d["a_param"] == a_param_target)
+locals().update({k: v for k, v in f11vs.items() if k.startswith("F11")})
+
+# %%
+u = np.linspace(-um, um, int(um/us/2)*2)
+v = np.linspace(0, vm, int(vm/vs/2)*2)
+uneg = u[u < 0]  # -u[1:][::-1]
+u_non_neg = u[u >= 0]
+# uc = np.concatenate([uneg, u])
+# pixel size (microns)
+lambd = 0.782 / sp      # wavelength
+# transversal part of wave vector, to be re-escalated later as kp_pxsi
+# parameter "a" for Weber beam
+
+# --- Confluent Hypergeometric Functions ---
+zu = 1j * kp * u**2
+zu_noneg = 1j * kp * u_non_neg**2
+zv = 1j * kp * v**2
+
+
+# %%
 Ue_nn, Uo_nn, Ve, Vo = F11Ue_nn.copy(), F11Uo_nn.copy(), F11Ve.copy(), F11Vo.copy()
 size_Uneg_start = len(uneg) - len(u_non_neg)
 Ueneg = Ue_nn[size_Uneg_start:][::-1]
@@ -484,10 +565,12 @@ npx_crop = int(pr/2-140/.8)
 Psi = np.flipud(psi_epio2n[npx_crop:-1, :])
 print(Psi.shape)
 
-plt.pcolormesh(np.abs(Psi)**2)
+plt.pcolormesh(np.abs(Psi)**2, cmap='jet')
+plt.colorbar()
+# %%
 plt.figure()
-plt.pcolormesh(np.angle(Psi))
-
+plt.pcolormesh(np.angle(Psi), cmap='jet')
+plt.colorbar()
 # %% Defining rectangular coords to be displayed on the SLM, and croping Weber
 # profile for the cloude simulation
 
@@ -512,7 +595,8 @@ X_grid, Y_grid = np.meshgrid(x_sys_coord*kp_pxsi, y_sys_coord*kp_pxsi)
 
 print(X_grid.shape)
 plt.figure()
-plt.pcolormesh(X_grid, Y_grid, np.abs(Psi)**2)
+plt.pcolormesh(X_grid, Y_grid, np.abs(Psi)**2, cmap='jet')
+plt.colorbar()
 
 # %% @title %% Get accelerations fields
 dx = dy = 0.8e-6  # pixel size times telescope reduction
@@ -523,7 +607,7 @@ print("accelerations, complete")
 print(ffx.shape, ffy.shape, Intensity.shape)
 # #%%
 plt.figure()
-plt.quiver(X_grid, Y_grid, ffx, ffy, Intensity)
+plt.quiver(X_grid[::4], Y_grid[::4], ffx[::4], ffy[::4], Intensity[::4])
 plt.show()
 
 
@@ -542,8 +626,8 @@ interp_fy = RegularGridInterpolator(
 # 2. Create the Extended Grid
 # # ---------------------------------------------------------
 # Make the limits significantly wider than the original 0-5 and 0-4 range
-w_factor = .3  # 1.03  # widering factor
-extra_factor = 1.5
+w_factor = .7  # 1.03  # widering factor
+extra_factor = 1.8
 x_ext = (np.arange(nx*w_factor) - nx*w_factor/2*extra_factor) * dx
 y_ext = (np.arange(ny*w_factor) - ny*w_factor/2*extra_factor) * dy
 X_ext, Y_ext = np.meshgrid(x_ext, y_ext)
@@ -565,8 +649,8 @@ ffy_ext = interp_fy(eval_points).reshape(X_ext.shape)
 # ---------------------------------------------------------
 fig, ax = plt.subplots(figsize=(8, 6))
 
-col_lim = int(nc*.6)  # 60
-row_lim = int(mc*.6)  # 100
+col_lim = int(nc*.96)  # 60
+row_lim = int(mc*.96)  # 100
 # Plot the vector field
 ax.quiver(X_ext[0:col_lim, 0:row_lim], Y_ext[0:col_lim, 0:row_lim], ffx_ext[0:col_lim, 0:row_lim], ffy_ext[0:col_lim, 0:row_lim],
           color='blue', pivot='middle', width=0.0005)
@@ -592,7 +676,7 @@ plt.show()
 
 # %% # 1. Simulation Setup, cloud init
 # ---------------------------------------------------------
-Np = 5000
+Np = 2000
 
 # --- 2. Initialize Cloud ---
 print("Initializing Atomic Cloud...")
@@ -617,17 +701,22 @@ print(f"Solving ODEs for {Np} particles over {t_end} seconds...")
 ode_method_list = ['Radau', 'RK45', 'BDF', 'LSODA']
 ode_method = ode_method_list[1]
 
+
 # "tic"
 start_time = time.perf_counter()
 
 solution = solve_ivp(particle_cloud_motion, t_span,
                      state0, t_eval=t_eval, method=ode_method)
+
+end_time = time.perf_counter()
+# "toc"
+timelapse = end_time-start_time
+print(f'Time lapse: {timelapse:.3f}')
+
+# %%
+
 x_sol, y_sol = solution.y[0:Np, :], solution.y[Np:2*Np, :]
 
-# "toc"
-end_time = time.perf_counter()
-
-print(end_time-start_time)
 
 #   change units from m to um for display
 # ---------------------------------------------------------
@@ -647,7 +736,7 @@ fig, axes = plt.subplots(1, 5, figsize=(22, 6))
 
 # Expanded limits so the final cloud is not cropped
 x_lims = (-350, 350)
-y_lims = (-1250, 200)
+y_lims = (-1350, 200)
 
 # Create global CCD bins for the 1x5 plot so the "camera" resolution stays constant
 pixel_size_global = 8
@@ -696,7 +785,10 @@ fig.colorbar(im, ax=axes, label='Particles per Pixel', fraction=0.02, pad=0.02)
 plot_ccd_density(t_target=7e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
                  t_eval=t_eval, pixel_size=8)
 
-plot_ccd_density(t_target=12e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
+plot_ccd_density(t_target=13e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
+                 t_eval=t_eval, pixel_size=8)
+
+plot_ccd_density(t_target=17e-3, x_sol=x_sol_mu, y_sol=y_sol_mu,
                  t_eval=t_eval, pixel_size=8)
 # %%
 
